@@ -54,10 +54,9 @@ __global__ void add_matrices(int *a, int *b, int *c)
 				}
 			}
 
-			printf("displaying the array \n");
 			
-			for (int i = 0 ; i < 32; i++)
-			{printf("%d ", array[i]);}
+			
+			
 
 
 			for (int i = 0 ; i < 32; i++)
@@ -71,9 +70,27 @@ __global__ void add_matrices(int *a, int *b, int *c)
 						array[j+1] = temp;
 					}
 				}
-			}			
+			}	
 
-		c[thread_id] = array[32/2];
+
+
+		
+		if(row == 2 && column == 3)
+		{
+			for (int j = 0 ; j < 32; j++)
+					{
+						printf("%d ", array[j]);
+							
+					}
+
+
+		}		
+
+
+
+
+			c[thread_id] = array[31/2];
+
 		}
 		//int num = a[thread_id];
 		
@@ -102,7 +119,8 @@ int main()
 		{255,248,253,247,255,252,255,247,253,255},
 		{250,0,251,255,246,247,240,255,246,244}
     	};
-
+	
+		
 
 
 	int C[M][N];
