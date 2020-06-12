@@ -75,26 +75,18 @@ __global__ void median_filter(int *a, int *b, int *c)
 
 
 		
-		if(row == 2 && column == 3)
+		/*if(row == 2 && column == 3)
 		{
 			for (int j = 0 ; j < 32; j++)
 					{
-						printf("%d ", array[j]);
-							
+						printf("%d ", array[j]);		
 					}
 
-
-		}		
-
-
-
-
+		} //This is just for testing purposes*/		
 			c[thread_id] = array[31/2];
 
 		}
 		//int num = a[thread_id];
-		
-		
 
 	}
 }
@@ -105,14 +97,14 @@ int main( int argc, char** argv )
 	
 	size_t bytes = M*N*sizeof(int);
 
-	int A[M][N];
+	int A[M][N];		//Image array
 
 
-	int C[M][N];
+	int C[M][N];		//Result array
 
 	
 
-	int B[5][5] =
+	int B[5][5] =					//Image Filter kernel
     	{
 		{0,1,1,1,0},
 		{1,2,2,2,1},
@@ -129,7 +121,7 @@ int main( int argc, char** argv )
     }
 
     Mat image;
-    image = imread(argv[1]);   // Read the file
+    image = imread(argv[1]);   // Read the image
 
     if(! image.data )                              // Check for invalid input
     {
@@ -181,11 +173,11 @@ int main( int argc, char** argv )
 	
 
  
-	// Copy data from device array d_C to host array C
+	
 	cudaMemcpy(C, d_C, bytes, cudaMemcpyDeviceToHost);
 
-	// Verify results
-	printf("Displaying data\n\n");
+	
+	//printf("Displaying data\n\n");
 	
 
 	for(int j=0;j<M;j++) 
