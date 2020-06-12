@@ -1,20 +1,20 @@
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <iostream>
+#include <cstdlib>
+#include <cstring>
 #include <stdio.h>
 
-// Macro for checking errors in CUDA API calls
-#define cudaErrorCheck(call)                                                              \
-do{                                                                                       \
-    cudaError_t cuErr = call;                                                             \
-    if(cudaSuccess != cuErr){                                                             \
-      printf("CUDA Error - %s:%d: '%s'\n", __FILE__, __LINE__, cudaGetErrorString(cuErr));\
-      exit(0);                                                                            \
-    }                                                                                     \
-}while(0)
+using namespace cv;
+using namespace std;
+
+
 
 // Values for MxN matrix
-#define M 10
-#define N 10
+#define M 562
+#define N 800
 
-// Kernel
+
 __global__ void add_matrices(int *a, int *b, int *c)
 {
 	int column = blockDim.x * blockIdx.x + threadIdx.x;
@@ -99,28 +99,13 @@ __global__ void add_matrices(int *a, int *b, int *c)
 	}
 }
 
-// Main program
-int main()
+
+int main( int argc, char** argv )
 {
-	// Number of bytes to allocate for MxN matrix
+	
 	size_t bytes = M*N*sizeof(int);
 
-	// Allocate memory for arrays A, B, and C on host
-	int A[M][N]=
-    	{
-		{249,255,252,255,235,0,255,255,255,243},
-		{244,255,241,255,255,253,252,0,255,233},
-		{255,255,242,248,249,239,248,3,237,255},
-		{245,244,254,255,255,255,250,255,255,238},
-		{255,241,255,242,255,236,255,0,254,251},
-		{253,255,244,255,250,255,245,251,252,255},
-		{233,255,248,239,255,243,255,251,4,0},
-		{255,240,252,252,255,252,238,255,252,255},
-		{255,248,253,247,255,252,255,247,253,255},
-		{250,0,251,255,246,247,240,255,246,244}
-    	};
-	
-		
+	int A[M][N];
 
 
 	int C[M][N];
@@ -136,24 +121,43 @@ int main()
 		{0,1,1,1,0}
     	};
 
-	for(int i=0; i<5; i++)
-	{
-		for(int j=0; j<5; j++)
-		{
-			printf("%d", B[i][j]);
-		}
-		printf("\n");
-	}
+	//cout<<"printing data\n";
+    if( argc != 2)
+    {
+     cout <<" Usage: display_image ImageToLoadAndDisplay" << endl;
+     return -1;
+    }
+
+    Mat image;
+    image = imread(argv[1]);   // Read the file
+
+    if(! image.data )                              // Check for invalid input
+    {
+        cout <<  "Could not open or find the image" << std::endl ;
+        return -1;
+    }
 
 	
+	
+	for(int j=0;j<image.rows;j++) 
+	{
+	  for (int i=0;i<image.cols;i++)
+	  {
+	       A[j][i] = (int)image.at<uchar>(j,i);
+		//count++;
+	  }
+		//cout<<"\n";
+	}
 
-	// Allocate memory for arrays d_A, d_B, and d_C on device
+	//CUDA function call here
+	
+
 	int *d_A, *d_B, *d_C;
-	cudaErrorCheck( cudaMalloc(&d_A, bytes) );
-	cudaErrorCheck( cudaMalloc(&d_B, bytes) );
-	cudaErrorCheck( cudaMalloc(&d_C, bytes) );
+	cudaMalloc(&d_A, bytes);
+	cudaMalloc(&d_B, bytes);
+	cudaMalloc(&d_C, bytes);
 
-	// Initialize host arrays A and B
+	
 	for(int i=0; i<M; i++)
 	{
 		for(int j=0; j<N; j++)
@@ -162,65 +166,55 @@ int main()
 		}
 	}
 
+
+
+	cudaMemcpy(d_A, A, bytes, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_B, B, bytes, cudaMemcpyHostToDevice);
+
 	
-
-	// Copy data from host arrays A and B to device arrays d_A and d_B
-	cudaErrorCheck( cudaMemcpy(d_A, A, bytes, cudaMemcpyHostToDevice) );
-	cudaErrorCheck( cudaMemcpy(d_B, B, bytes, cudaMemcpyHostToDevice) );
-
-	// Set execution configuration parameters
-	// 		threads_per_block: number of CUDA threads per grid block
-	//		blocks_in_grid   : number of blocks in grid
-	//		(These are c structs with 3 member variables x, y, x)
-	dim3 threads_per_block( 16, 16, 1 );
-	dim3 blocks_in_grid( ceil( float(N) / threads_per_block.x ), ceil( float(M) / threads_per_block.y ), 1 );
+	dim3 threads_per_block( 16, 32, 1 );
+	dim3 blocks_in_grid( ceil( (float(N) / threads_per_block.x) ), ceil( float(M) / threads_per_block.y ), 1 );
 
 	// Launch kernel
 	add_matrices<<< blocks_in_grid, threads_per_block >>>(d_A, d_B, d_C);
 
-	// Check for errors in kernel launch (e.g. invalid execution configuration paramters)
-  cudaError_t cuErrSync  = cudaGetLastError();
+	
 
-	// Check for errors on the GPU after control is returned to CPU
-  cudaError_t cuErrAsync = cudaDeviceSynchronize();
-
-  if (cuErrSync != cudaSuccess) 
-	{ printf("CUDA Error - %s:%d: '%s'\n", __FILE__, __LINE__, cudaGetErrorString(cuErrSync)); exit(0); }
-
-  if (cuErrAsync != cudaSuccess) 
-	{ printf("CUDA Error - %s:%d: '%s'\n", __FILE__, __LINE__, cudaGetErrorString(cuErrAsync)); exit(0); }
-
+ 
 	// Copy data from device array d_C to host array C
-	cudaErrorCheck( cudaMemcpy(C, d_C, bytes, cudaMemcpyDeviceToHost) );
+	cudaMemcpy(C, d_C, bytes, cudaMemcpyDeviceToHost);
 
 	// Verify results
 	printf("Displaying data\n\n");
 	
 
-	for(int i=0; i<M; i++)
+	for(int j=0;j<M;j++) 
 	{
-		for(int j=0; j<N; j++)
-		{
-			printf("%d\t", C[i][j]);
-		}
-		printf("\n");
+	  for (int i=0;i<N;i++)
+	  {
+	       image.at<uchar>(j,i) = C[j][i];
+		//count++;
+	  }
+		//cout<<"\n";
 	}
 
 	// Free GPU memory
-	cudaErrorCheck( cudaFree(d_A) );
-	cudaErrorCheck( cudaFree(d_B) );
-	cudaErrorCheck( cudaFree(d_C) );
+	cudaFree(d_A);
+	cudaFree(d_B);
+	cudaFree(d_C);
 
-  printf("\n--------------------------------\n");
-  printf("__SUCCESS__\n");
-  printf("--------------------------------\n");
-  printf("M                         = %d\n", M);
-	printf("N                         = %d\n", N);
-  printf("Threads Per Block (x-dim) = %d\n", threads_per_block.x);
-  printf("Threads Per Block (y-dim) = %d\n", threads_per_block.y);
-  printf("Blocks In Grid (x-dim)    = %d\n", blocks_in_grid.x);
-	printf("Blocks In Grid (y-dim)    = %d\n", blocks_in_grid.y);
-  printf("--------------------------------\n\n");
 
-	return 0;
+	
+	
+
+    namedWindow( "Display window", WINDOW_AUTOSIZE );
+    imshow( "Display window", image );                  
+   
+    waitKey(0);                                       
+
+
+	
+	
+
+    return 0;
 }

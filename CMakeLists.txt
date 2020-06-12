@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 2.8)
+project( DisplayImage )
+find_package( OpenCV REQUIRED )
+find_package(CUDA QUIET REQUIRED)
+cuda_add_executable( DisplayImage median_filter.cu )
+target_link_libraries( DisplayImage ${OpenCV_LIBS} )
