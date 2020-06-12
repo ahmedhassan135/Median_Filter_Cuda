@@ -15,7 +15,7 @@ using namespace std;
 #define N 800
 
 
-__global__ void add_matrices(int *a, int *b, int *c)
+__global__ void median_filter(int *a, int *b, int *c)
 {
 	int column = blockDim.x * blockIdx.x + threadIdx.x;
 	int row    = blockDim.y * blockIdx.y + threadIdx.y;
@@ -176,7 +176,7 @@ int main( int argc, char** argv )
 	dim3 blocks_in_grid( ceil( (float(N) / threads_per_block.x) ), ceil( float(M) / threads_per_block.y ), 1 );
 
 	// Launch kernel
-	add_matrices<<< blocks_in_grid, threads_per_block >>>(d_A, d_B, d_C);
+	median_filter<<< blocks_in_grid, threads_per_block >>>(d_A, d_B, d_C);
 
 	
 
