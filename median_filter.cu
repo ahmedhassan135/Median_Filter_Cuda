@@ -15,7 +15,7 @@ using namespace std;
 #define N 800
 
 
-__global__ void add_matrices(int *a, int *b, int *c)
+__global__ void median_filter(int *a, int *b, int *c)
 {
 	int column = blockDim.x * blockIdx.x + threadIdx.x;
 	int row    = blockDim.y * blockIdx.y + threadIdx.y;
@@ -75,26 +75,17 @@ __global__ void add_matrices(int *a, int *b, int *c)
 
 
 		
-		if(row == 2 && column == 3)
+		/*if(row == 2 && column == 3)
 		{
 			for (int j = 0 ; j < 32; j++)
 					{
-						printf("%d ", array[j]);
-							
+						printf("%d ", array[j]);		
 					}
-
-
-		}		
-
-
-
-
+		} //This is just for testing purposes*/		
 			c[thread_id] = array[31/2];
 
 		}
 		//int num = a[thread_id];
-		
-		
 
 	}
 }
@@ -105,14 +96,22 @@ int main( int argc, char** argv )
 	
 	size_t bytes = M*N*sizeof(int);
 
-	int A[M][N];
+	int A[M][N];		//Image array
+
+	for (int i=0; i < M;i++)
+	{
+		for (int j = 0; j < N; j++)
+		{
+			A[i][j] = -1;
+		}
+	}
 
 
-	int C[M][N];
+	int C[M][N];		//Result array
 
 	
 
-	int B[5][5] =
+	int B[5][5] =					//Image Filter kernel
     	{
 		{0,1,1,1,0},
 		{1,2,2,2,1},
@@ -129,7 +128,7 @@ int main( int argc, char** argv )
     }
 
     Mat image;
-    image = imread(argv[1]);   // Read the file
+    image = imread(argv[1]);   // Read the image
 
     if(! image.data )                              // Check for invalid input
     {
@@ -139,15 +138,40 @@ int main( int argc, char** argv )
 
 	
 	
-	for(int j=0;j<image.rows;j++) 
+	for(int j=0;j<M;j++) 
 	{
-	  for (int i=0;i<image.cols;i++)
+	  for (int i=0;i<N;i++)
 	  {
-	       A[j][i] = (int)image.at<uchar>(j,i);
+	       A[j][i] = (int)image.at<uchar>(j,i*3);
 		//count++;
 	  }
 		//cout<<"\n";
 	}
+
+	/*printf("%d ", image.at<uchar>(0,0));
+	printf("%d ", image.at<uchar>(0,1));
+	printf("%d ", image.at<uchar>(0,2));
+	printf("%d ", image.at<uchar>(0,3));
+	printf("%d ", image.at<uchar>(0,4));
+	printf("%d ", image.at<uchar>(0,5));
+	printf("%d ", image.at<uchar>(0,6));
+	printf("%d ", image.at<uchar>(0,7));
+	printf("%d ", image.at<uchar>(0,8));
+	printf("%d ", image.at<uchar>(0,9));
+	printf("%d ", image.at<uchar>(0,10));
+	printf("%d ", image.at<uchar>(0,11));
+
+
+	for (int i=0; i < M;i++)
+	{
+		for (int j = 0; j < N; j++)
+		{
+			printf("%d ", A[i][j]);
+		}
+		printf("\n");
+	}*/
+
+
 
 	//CUDA function call here
 	
@@ -176,27 +200,39 @@ int main( int argc, char** argv )
 	dim3 blocks_in_grid( ceil( (float(N) / threads_per_block.x) ), ceil( float(M) / threads_per_block.y ), 1 );
 
 	// Launch kernel
-	add_matrices<<< blocks_in_grid, threads_per_block >>>(d_A, d_B, d_C);
+	median_filter<<< blocks_in_grid, threads_per_block >>>(d_A, d_B, d_C);
 
 	
 
  
-	// Copy data from device array d_C to host array C
+	
 	cudaMemcpy(C, d_C, bytes, cudaMemcpyDeviceToHost);
 
-	// Verify results
-	printf("Displaying data\n\n");
 	
+	//printf("Displaying data\n\n");
+	
+	int count = 0;
+
+	//printf("cols of the images are %d" , image.cols );
 
 	for(int j=0;j<M;j++) 
-	{
+	{		
 	  for (int i=0;i<N;i++)
 	  {
-	       image.at<uchar>(j,i) = C[j][i];
+		   image.at<uchar>(j,count) = C[j][i];
+		   //printf("%d ", count);
+		   image.at<uchar>(j,count + 1) = C[j][i];
+		   //printf("%d ", count + 1);
+		   image.at<uchar>(j,count + 2) = C[j][i];
+		   //printf("%d ", count + 2);
+		   count = count + 3;
 		//count++;
 	  }
+	  count = 0;
 		//cout<<"\n";
 	}
+
+	
 
 	// Free GPU memory
 	cudaFree(d_A);
