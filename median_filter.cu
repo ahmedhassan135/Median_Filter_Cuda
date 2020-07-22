@@ -10,7 +10,7 @@ using namespace std;
 
 
 
-// Values for MxN matrix
+// Values for MxN matrix Need to make it dynamic
 #define M 562
 #define N 800
 
@@ -103,7 +103,7 @@ int main( int argc, char** argv )
 
 	
 
-	int B[5][5] =					//Image Filter kernel
+	int B[5][5] =					//5x5 Image Filter kernel
     	{
 		{0,1,1,1,0},
 		{1,2,2,2,1},
@@ -217,7 +217,8 @@ int main( int argc, char** argv )
 	
 
     namedWindow( "Display window", WINDOW_AUTOSIZE );
-    imshow( "Display window", image );                  
+    imshow( "Display window", image ); 
+  //imwrite("Denoised_image", image);                 
    
     waitKey(0);                                       
 
