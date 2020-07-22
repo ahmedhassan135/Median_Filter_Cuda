@@ -26,8 +26,7 @@ __global__ void median_filter(int *a, int *b, int *c)
 	if (row < M && column < N)
 	{
 		int thread_id = row * N + column;
-		//c[thread_id] = a[thread_id] + b[thread_id];
-		//c[thread_id] = a[thread_id] + 1;
+		
 
 		if(row > 1 && column > 1 && row < M - 2 && column < N - 2)
 		{
@@ -74,14 +73,7 @@ __global__ void median_filter(int *a, int *b, int *c)
 
 
 
-		
-		/*if(row == 2 && column == 3)
-		{
-			for (int j = 0 ; j < 32; j++)
-					{
-						printf("%d ", array[j]);		
-					}
-		} //This is just for testing purposes*/		
+			
 			c[thread_id] = array[31/2];
 
 		}
@@ -142,34 +134,17 @@ int main( int argc, char** argv )
 	{
 	  for (int i=0;i<N;i++)
 	  {
+		  /*the opencv mat image stores the image in this format (10,10,10) (0,0,0) (5,5,5),
+		   same value across RGB except this is grayscale so 3 same values per pixel which makes
+		   the image columns 3 times larger since they store 3 same values to retrieve unique
+		   values 'i' index here is multiplied by 3 each time*/
 	       A[j][i] = (int)image.at<uchar>(j,i*3);
 		//count++;
 	  }
 		//cout<<"\n";
 	}
 
-	/*printf("%d ", image.at<uchar>(0,0));
-	printf("%d ", image.at<uchar>(0,1));
-	printf("%d ", image.at<uchar>(0,2));
-	printf("%d ", image.at<uchar>(0,3));
-	printf("%d ", image.at<uchar>(0,4));
-	printf("%d ", image.at<uchar>(0,5));
-	printf("%d ", image.at<uchar>(0,6));
-	printf("%d ", image.at<uchar>(0,7));
-	printf("%d ", image.at<uchar>(0,8));
-	printf("%d ", image.at<uchar>(0,9));
-	printf("%d ", image.at<uchar>(0,10));
-	printf("%d ", image.at<uchar>(0,11));
-
-
-	for (int i=0; i < M;i++)
-	{
-		for (int j = 0; j < N; j++)
-		{
-			printf("%d ", A[i][j]);
-		}
-		printf("\n");
-	}*/
+	
 
 
 
@@ -213,18 +188,16 @@ int main( int argc, char** argv )
 	
 	int count = 0;
 
-	//printf("cols of the images are %d" , image.cols );
 
 	for(int j=0;j<M;j++) 
 	{		
 	  for (int i=0;i<N;i++)
 	  {
+		  /*Since cv image is stored redundantly in grayscale, this is done to store same value 3
+		  times*/
 		   image.at<uchar>(j,count) = C[j][i];
-		   //printf("%d ", count);
 		   image.at<uchar>(j,count + 1) = C[j][i];
-		   //printf("%d ", count + 1);
 		   image.at<uchar>(j,count + 2) = C[j][i];
-		   //printf("%d ", count + 2);
 		   count = count + 3;
 		//count++;
 	  }
