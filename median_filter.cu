@@ -10,12 +10,12 @@ using namespace std;
 
 
 
-// Values for MxN matrix Need to make it dynamic
-#define M 562
-#define N 800
+// Values for MxN matrix
+int M = 0;
+int N = 0;
 
 
-__global__ void median_filter(int *a, int *b, int *c)
+__global__ void median_filter(int *a, int *b, int *c, int Rows, int Columns)
 {
 	int column = blockDim.x * blockIdx.x + threadIdx.x;
 	int row    = blockDim.y * blockIdx.y + threadIdx.y;
@@ -23,31 +23,31 @@ __global__ void median_filter(int *a, int *b, int *c)
 	int array[32];
 	int count = 0;
 
-	if (row < M && column < N)
+	if (row < Rows && column < Columns)
 	{
-		int thread_id = row * N + column;
+		int thread_id = row * Columns + column;
 		
 
-		if(row > 1 && column > 1 && row < M - 2 && column < N - 2)
+		if(row > 1 && column > 1 && row < Rows - 2 && column < Columns - 2)
 		{
 			for(int i = 0 ; i < 25; i++)
 			{
 				for (int j = 0 ; j < b[i]; j++)
 				{
 					if (i < 5)
-						array[count] = a[thread_id - (2*N) - 2 + i];
+						array[count] = a[thread_id - (2*Columns) - 2 + i];
 
 					else if (i < 10)
-						array[count] = a[thread_id - N - 2 + i - 5];
+						array[count] = a[thread_id - Columns - 2 + i - 5];
 
 					else if (i < 15)
 						array[count] = a[thread_id - 2 + i - 10];
 
 					else if (i < 20)
-						array[count] = a[thread_id + N - 2 + i - 15];
+						array[count] = a[thread_id + Columns - 2 + i - 15];
 
 					else if (i < 25)
-						array[count] = a[thread_id + (2*N) - 2 + i - 20];
+						array[count] = a[thread_id + (2 * Columns) - 2 + i - 20];
 						
 					count++;
 				}
@@ -85,8 +85,29 @@ __global__ void median_filter(int *a, int *b, int *c)
 
 int main( int argc, char** argv )
 {
+	if( argc != 2)
+    {
+     cout <<" Usage: display_image ImageToLoadAndDisplay" << endl;
+     return -1;
+    }
+
+    Mat image;
+    image = imread(argv[1]);   // Read the image
+
+    if(! image.data )                              // Check for invalid input
+    {
+        cout <<  "Could not open or find the image" << std::endl ;
+        return -1;
+	}
+
+	//printf("Image rows are %d\n", image.rows);
+	
+
+	M = image.rows;
+	N = image.cols;
 	
 	size_t bytes = M*N*sizeof(int);
+	size_t b_bytes = 5*5*sizeof(int);
 
 	int A[M][N];		//Image array
 
@@ -103,7 +124,7 @@ int main( int argc, char** argv )
 
 	
 
-	int B[5][5] =					//5x5 Image Filter kernel
+	int B[5][5] =					//Image Filter kernel
     	{
 		{0,1,1,1,0},
 		{1,2,2,2,1},
@@ -112,21 +133,7 @@ int main( int argc, char** argv )
 		{0,1,1,1,0}
     	};
 
-	//cout<<"printing data\n";
-    if( argc != 2)
-    {
-     cout <<" Usage: display_image ImageToLoadAndDisplay" << endl;
-     return -1;
-    }
-
-    Mat image;
-    image = imread(argv[1]);   // Read the image
-
-    if(! image.data )                              // Check for invalid input
-    {
-        cout <<  "Could not open or find the image" << std::endl ;
-        return -1;
-    }
+    
 
 	
 	
@@ -143,9 +150,6 @@ int main( int argc, char** argv )
 	  }
 		//cout<<"\n";
 	}
-
-	
-
 
 
 	//CUDA function call here
@@ -165,17 +169,15 @@ int main( int argc, char** argv )
 		}
 	}
 
-
-
 	cudaMemcpy(d_A, A, bytes, cudaMemcpyHostToDevice);
-	cudaMemcpy(d_B, B, bytes, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_B, B, b_bytes, cudaMemcpyHostToDevice);
 
 	
 	dim3 threads_per_block( 16, 32, 1 );
 	dim3 blocks_in_grid( ceil( (float(N) / threads_per_block.x) ), ceil( float(M) / threads_per_block.y ), 1 );
 
 	// Launch kernel
-	median_filter<<< blocks_in_grid, threads_per_block >>>(d_A, d_B, d_C);
+	median_filter<<< blocks_in_grid, threads_per_block >>>(d_A, d_B, d_C, M, N);
 
 	
 
@@ -217,8 +219,7 @@ int main( int argc, char** argv )
 	
 
     namedWindow( "Display window", WINDOW_AUTOSIZE );
-    imshow( "Display window", image ); 
-  //imwrite("Denoised_image", image);                 
+    imshow( "Display window", image );                  
    
     waitKey(0);                                       
 
