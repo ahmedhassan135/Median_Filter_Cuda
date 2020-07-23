@@ -7,3 +7,6 @@ the CUDA kernel. Each thread works on a pixel retrieving the neighbour pixel val
 a filtered image which is sent back and displayed to the user
 
 
+
+To run the program, the user needs cuda toolkit and Opencv. Just run the script build_and_run.sh with the image path/name to compile and run the program.
+
